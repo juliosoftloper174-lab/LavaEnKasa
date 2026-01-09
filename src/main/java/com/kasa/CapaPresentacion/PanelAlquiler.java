@@ -11,7 +11,6 @@ import java.awt.event.*;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.List;
-import java.util.stream.Collectors;
 
 public class PanelAlquiler extends JPanel {
 
@@ -40,6 +39,10 @@ public class PanelAlquiler extends JPanel {
     private DefaultTableModel modeloTabla;
     private JLabel lblTotalMes;
     private int mesSeleccionado = -1;
+    
+    // Botones de acción para la tabla
+    private JButton btnEditarTabla;
+    private JButton btnEliminarTabla;
 
     public PanelAlquiler() {
         setLayout(new BorderLayout());
@@ -88,7 +91,6 @@ public class PanelAlquiler extends JPanel {
         
         txtBuscarCliente = new JTextField();
         txtBuscarCliente.putClientProperty(FlatClientProperties.PLACEHOLDER_TEXT, "Escribe nombre, número o dirección...");
-
         
         // Listener para búsqueda en tiempo real
         txtBuscarCliente.addKeyListener(new KeyAdapter() {
@@ -98,7 +100,7 @@ public class PanelAlquiler extends JPanel {
             }
         });
 
-        // ComboBox Cliente con Renderer mejorado
+        // ComboBox Cliente - SOLO MUESTRA EL NOMBRE
         cbCliente = new JComboBox<>();
         cbCliente.setRenderer(new DefaultListCellRenderer() {
             @Override
@@ -106,8 +108,7 @@ public class PanelAlquiler extends JPanel {
                 super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
                 if (value instanceof Cliente) {
                     Cliente c = (Cliente) value;
-                    setText(String.format("<html><b>%s</b> - Tel: %s<br><small>%s</small></html>", 
-                        c.getNombre(), c.getNumero(), c.getDireccion()));
+                    setText(c.getNombre()); // SOLO EL NOMBRE
                 }
                 return this;
             }
@@ -149,8 +150,8 @@ public class PanelAlquiler extends JPanel {
         lblTotal.setFont(new Font("SansSerif", Font.BOLD, 18));
         lblTotal.setForeground(new Color(46, 204, 113));
 
-        // Panel de Botones
-        JPanel pnlBotones = new JPanel(new GridLayout(1, 2, 10, 0));
+        // ========== PANEL DE BOTONES CENTRADO ==========
+        JPanel pnlBotones = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 0));
         pnlBotones.setOpaque(false);
         
         btnRegistrar = new JButton("Confirmar Alquiler");
@@ -159,6 +160,7 @@ public class PanelAlquiler extends JPanel {
         btnRegistrar.setFont(new Font("SansSerif", Font.BOLD, 16));
         btnRegistrar.setFocusPainted(false);
         btnRegistrar.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        btnRegistrar.setPreferredSize(new Dimension(220, 40));
         btnRegistrar.addActionListener(e -> registrarOActualizar());
         
         btnCancelarEdicion = new JButton("Cancelar Edición");
@@ -167,6 +169,7 @@ public class PanelAlquiler extends JPanel {
         btnCancelarEdicion.setFont(new Font("SansSerif", Font.BOLD, 16));
         btnCancelarEdicion.setFocusPainted(false);
         btnCancelarEdicion.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        btnCancelarEdicion.setPreferredSize(new Dimension(180, 40));
         btnCancelarEdicion.setVisible(false);
         btnCancelarEdicion.addActionListener(e -> cancelarEdicion());
         
@@ -263,27 +266,78 @@ public class PanelAlquiler extends JPanel {
         pnlTabla.setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
         pnlTabla.putClientProperty(FlatClientProperties.STYLE, "arc: 15");
 
+        // Panel superior con título y botones de acción
+        JPanel pnlTituloYBotones = new JPanel(new BorderLayout());
+        pnlTituloYBotones.setOpaque(false);
+        
         JLabel lblTituloTabla = new JLabel("Alquileres del Mes");
         lblTituloTabla.setFont(new Font("SansSerif", Font.BOLD, 18));
-        lblTituloTabla.setBorder(BorderFactory.createEmptyBorder(0, 0, 10, 0));
-        pnlTabla.add(lblTituloTabla, BorderLayout.NORTH);
+        pnlTituloYBotones.add(lblTituloTabla, BorderLayout.WEST);
+        
+        // Botones de acción
+        JPanel pnlAcciones = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
+        pnlAcciones.setOpaque(false);
+        
+        btnEditarTabla = new JButton("✏️ Editar");
+        btnEditarTabla.setBackground(new Color(52, 152, 219));
+        btnEditarTabla.setForeground(Color.WHITE);
+        btnEditarTabla.setFont(new Font("SansSerif", Font.BOLD, 13));
+        btnEditarTabla.setFocusPainted(false);
+        btnEditarTabla.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        btnEditarTabla.setEnabled(false);
+        btnEditarTabla.addActionListener(e -> editarSeleccionado());
+        
+        btnEliminarTabla = new JButton("🗑️ Eliminar");
+        btnEliminarTabla.setBackground(new Color(231, 76, 60));
+        btnEliminarTabla.setForeground(Color.WHITE);
+        btnEliminarTabla.setFont(new Font("SansSerif", Font.BOLD, 13));
+        btnEliminarTabla.setFocusPainted(false);
+        btnEliminarTabla.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        btnEliminarTabla.setEnabled(false);
+        btnEliminarTabla.addActionListener(e -> eliminarSeleccionado());
+        
+        pnlAcciones.add(btnEditarTabla);
+        pnlAcciones.add(btnEliminarTabla);
+        pnlTituloYBotones.add(pnlAcciones, BorderLayout.EAST);
+        
+        pnlTabla.add(pnlTituloYBotones, BorderLayout.NORTH);
 
-        // Crear tabla con columnas de acción
+        // Crear tabla SIN columna de acciones
         modeloTabla = new DefaultTableModel(
-            new Object[]{"ID", "Cliente", "Lavadora", "Tipo", "Horas", "Promoción", "Total", "Fecha", "Acciones"}, 0
+            new Object[]{"ID", "Cliente", "Lavadora", "Tipo", "Horas", "Promoción", "Total", "Fecha"}, 0
         ) {
             @Override
             public boolean isCellEditable(int row, int column) {
-                return column == 8; // Solo la columna de acciones es editable
+                return false;
             }
         };
         
         tablaAlquileres = new JTable(modeloTabla);
         tablaAlquileres.setFont(new Font("SansSerif", Font.PLAIN, 13));
-        tablaAlquileres.setRowHeight(35);
+        tablaAlquileres.setRowHeight(30);
+        tablaAlquileres.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         tablaAlquileres.getTableHeader().setFont(new Font("SansSerif", Font.BOLD, 13));
         tablaAlquileres.getTableHeader().setBackground(new Color(52, 152, 219));
         tablaAlquileres.getTableHeader().setForeground(Color.WHITE);
+        
+        // Listener para habilitar/deshabilitar botones según selección
+        tablaAlquileres.getSelectionModel().addListSelectionListener(e -> {
+            if (!e.getValueIsAdjusting()) {
+                boolean haySeleccion = tablaAlquileres.getSelectedRow() != -1;
+                btnEditarTabla.setEnabled(haySeleccion);
+                btnEliminarTabla.setEnabled(haySeleccion);
+            }
+        });
+        
+        // Doble clic para editar
+        tablaAlquileres.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                if (e.getClickCount() == 2 && tablaAlquileres.getSelectedRow() != -1) {
+                    editarSeleccionado();
+                }
+            }
+        });
         
         // Centrar columnas numéricas
         DefaultTableCellRenderer centerRenderer = new DefaultTableCellRenderer();
@@ -292,10 +346,6 @@ public class PanelAlquiler extends JPanel {
         tablaAlquileres.getColumnModel().getColumn(3).setCellRenderer(centerRenderer);
         tablaAlquileres.getColumnModel().getColumn(4).setCellRenderer(centerRenderer);
         tablaAlquileres.getColumnModel().getColumn(6).setCellRenderer(centerRenderer);
-        
-        // Renderer personalizado para botones de acción
-        tablaAlquileres.getColumnModel().getColumn(8).setCellRenderer(new ButtonRenderer());
-        tablaAlquileres.getColumnModel().getColumn(8).setCellEditor(new ButtonEditor(new JCheckBox()));
         
         JScrollPane scrollTabla = new JScrollPane(tablaAlquileres);
         scrollTabla.setBorder(BorderFactory.createLineBorder(new Color(220, 220, 220)));
@@ -337,7 +387,7 @@ public class PanelAlquiler extends JPanel {
         }
     }
     
-    // ========== NUEVO: FILTRADO DE CLIENTES ==========
+    // ========== FILTRADO DE CLIENTES (busca por nombre, número y dirección) ==========
     private void filtrarClientes(String criterio) {
         List<Cliente> clientesFiltrados;
         
@@ -370,7 +420,7 @@ public class PanelAlquiler extends JPanel {
         }
     }
 
-    // ========== MODIFICADO: AHORA SOPORTA REGISTRO Y EDICIÓN ==========
+    // ========== REGISTRO Y ACTUALIZACIÓN ==========
     private void registrarOActualizar() {
         Cliente c = (Cliente) cbCliente.getSelectedItem();
         Lavadora l = (Lavadora) cbLavadora.getSelectedItem();
@@ -420,7 +470,19 @@ public class PanelAlquiler extends JPanel {
         }
     }
     
-    // ========== NUEVO: CARGAR DATOS PARA EDITAR ==========
+    // ========== EDITAR DESDE TABLA ==========
+    private void editarSeleccionado() {
+        int filaSeleccionada = tablaAlquileres.getSelectedRow();
+        if (filaSeleccionada == -1) {
+            JOptionPane.showMessageDialog(this, "Debe seleccionar un alquiler de la tabla.", 
+                "Advertencia", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+        
+        int idAlquiler = (int) modeloTabla.getValueAt(filaSeleccionada, 0);
+        cargarDatosParaEditar(idAlquiler);
+    }
+    
     private void cargarDatosParaEditar(int idAlquiler) {
         Alquiler a = negocio.obtenerPorId(idAlquiler);
         
@@ -467,7 +529,7 @@ public class PanelAlquiler extends JPanel {
         tabbedPane.setSelectedIndex(0);
     }
     
-    // ========== NUEVO: CANCELAR EDICIÓN ==========
+    // ========== CANCELAR EDICIÓN ==========
     private void cancelarEdicion() {
         alquilerEnEdicion = null;
         
@@ -486,7 +548,19 @@ public class PanelAlquiler extends JPanel {
         calcularTotalPrevio();
     }
     
-    // ========== NUEVO: ELIMINAR ALQUILER ==========
+    // ========== ELIMINAR DESDE TABLA ==========
+    private void eliminarSeleccionado() {
+        int filaSeleccionada = tablaAlquileres.getSelectedRow();
+        if (filaSeleccionada == -1) {
+            JOptionPane.showMessageDialog(this, "Debe seleccionar un alquiler de la tabla.", 
+                "Advertencia", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+        
+        int idAlquiler = (int) modeloTabla.getValueAt(filaSeleccionada, 0);
+        eliminarAlquiler(idAlquiler);
+    }
+    
     private void eliminarAlquiler(int idAlquiler) {
         int confirmacion = JOptionPane.showConfirmDialog(this,
             "¿Está seguro de eliminar este alquiler?\nEsta acción no se puede deshacer.",
@@ -528,6 +602,8 @@ public class PanelAlquiler extends JPanel {
         // Limpiar tabla
         modeloTabla.setRowCount(0);
         lblTotalMes.setText("TOTAL DEL MES: S/ 0.00");
+        btnEditarTabla.setEnabled(false);
+        btnEliminarTabla.setEnabled(false);
     }
 
     private void seleccionarMes(int mes, JButton botonMes) {
@@ -558,6 +634,8 @@ public class PanelAlquiler extends JPanel {
         
         if (alquileres.isEmpty()) {
             lblTotalMes.setText("TOTAL DEL MES: S/ 0.00");
+            btnEditarTabla.setEnabled(false);
+            btnEliminarTabla.setEnabled(false);
             return;
         }
         
@@ -565,7 +643,7 @@ public class PanelAlquiler extends JPanel {
         SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy HH:mm");
         
         for (Alquiler a : alquileres) {
-            Object[] fila = new Object[9];
+            Object[] fila = new Object[8];
             fila[0] = a.getIdAlquiler();
             fila[1] = obtenerNombreCliente(a.getIdCliente());
             fila[2] = obtenerNombreLavadora(a.getIdLavadora());
@@ -574,7 +652,6 @@ public class PanelAlquiler extends JPanel {
             fila[5] = a.getNombrePromocion() != null ? a.getNombrePromocion() : "-";
             fila[6] = "S/ " + String.format("%.2f", a.getTotal());
             fila[7] = a.getFecha() != null ? sdf.format(a.getFecha()) : "-";
-            fila[8] = a.getIdAlquiler(); // ID para los botones
             
             modeloTabla.addRow(fila);
             totalMes += a.getTotal();
@@ -603,110 +680,4 @@ public class PanelAlquiler extends JPanel {
         }
         return "Lavadora #" + idLavadora;
     }
-    
-    // ===================== CLASES INTERNAS PARA BOTONES EN TABLA =====================
-    
-    // Renderer para mostrar botones en la tabla
-    class ButtonRenderer extends JPanel implements javax.swing.table.TableCellRenderer {
-        private JButton btnEditar;
-        private JButton btnEliminar;
-        
-        public ButtonRenderer() {
-            setLayout(new FlowLayout(FlowLayout.CENTER, 5, 2));
-            setOpaque(true);
-            
-            btnEditar = new JButton("✏️");
-            btnEditar.setFont(new Font("SansSerif", Font.PLAIN, 14));
-            btnEditar.setBackground(new Color(52, 152, 219));
-            btnEditar.setForeground(Color.WHITE);
-            btnEditar.setFocusPainted(false);
-            btnEditar.setBorderPainted(false);
-            btnEditar.setPreferredSize(new Dimension(45, 28));
-            btnEditar.setToolTipText("Editar");
-            
-            btnEliminar = new JButton("🗑️");
-            btnEliminar.setFont(new Font("SansSerif", Font.PLAIN, 14));
-            btnEliminar.setBackground(new Color(231, 76, 60));
-            btnEliminar.setForeground(Color.WHITE);
-            btnEliminar.setFocusPainted(false);
-            btnEliminar.setBorderPainted(false);
-            btnEliminar.setPreferredSize(new Dimension(45, 28));
-            btnEliminar.setToolTipText("Eliminar");
-            
-            add(btnEditar);
-            add(btnEliminar);
-        }
-        
-        @Override
-        public Component getTableCellRendererComponent(JTable table, Object value,
-                boolean isSelected, boolean hasFocus, int row, int column) {
-            if (isSelected) {
-                setBackground(table.getSelectionBackground());
-            } else {
-                setBackground(table.getBackground());
-            }
-            return this;
-        }
-    }
-    
-    // Editor para hacer funcionales los botones
-    class ButtonEditor extends DefaultCellEditor {
-        private JPanel panel;
-        private JButton btnEditar;
-        private JButton btnEliminar;
-        private int idAlquiler;
-        
-        public ButtonEditor(JCheckBox checkBox) {
-            super(checkBox);
-            
-            panel = new JPanel(new FlowLayout(FlowLayout.CENTER, 5, 2));
-            panel.setOpaque(true);
-            
-            btnEditar = new JButton("✏️");
-            btnEditar.setFont(new Font("SansSerif", Font.PLAIN, 14));
-            btnEditar.setBackground(new Color(52, 152, 219));
-            btnEditar.setForeground(Color.WHITE);
-            btnEditar.setFocusPainted(false);
-            btnEditar.setBorderPainted(false);
-            btnEditar.setPreferredSize(new Dimension(45, 28));
-            btnEditar.setCursor(new Cursor(Cursor.HAND_CURSOR));
-            btnEditar.setToolTipText("Editar");
-            
-            btnEliminar = new JButton("🗑️");
-            btnEliminar.setFont(new Font("SansSerif", Font.PLAIN, 14));
-            btnEliminar.setBackground(new Color(231, 76, 60));
-            btnEliminar.setForeground(Color.WHITE);
-            btnEliminar.setFocusPainted(false);
-            btnEliminar.setBorderPainted(false);
-            btnEliminar.setPreferredSize(new Dimension(45, 28));
-            btnEliminar.setCursor(new Cursor(Cursor.HAND_CURSOR));
-            btnEliminar.setToolTipText("Eliminar");
-            
-            btnEditar.addActionListener(e -> {
-                fireEditingStopped();
-                cargarDatosParaEditar(idAlquiler);
-            });
-            
-            btnEliminar.addActionListener(e -> {
-                fireEditingStopped();
-                eliminarAlquiler(idAlquiler);
-            });
-            
-            panel.add(btnEditar);
-            panel.add(btnEliminar);
-        }
-        
-        @Override
-        public Component getTableCellEditorComponent(JTable table, Object value,
-                boolean isSelected, int row, int column) {
-            idAlquiler = (int) value;
-            panel.setBackground(table.getSelectionBackground());
-            return panel;
-        }
-        
-        @Override
-        public Object getCellEditorValue() {
-            return idAlquiler;
-        }
-    }
-}
+} 
