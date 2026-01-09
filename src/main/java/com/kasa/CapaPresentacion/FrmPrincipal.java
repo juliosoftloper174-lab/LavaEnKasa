@@ -53,6 +53,7 @@ public class FrmPrincipal extends JFrame {
         JButton btnLavadoras = crearBotonMenu("Lavadoras", "🧺");
         JButton btnAlquileres = crearBotonMenu("Alquileres", "💰");
         JButton btnEgresos = crearBotonMenu("Egresos", "📉");
+        JButton btnListaEgresos = crearBotonMenu("Lista Egresos", "📋");
 
         // Agregar botones al Sidebar
         sidebar.add(btnInicio);
@@ -60,6 +61,7 @@ public class FrmPrincipal extends JFrame {
         sidebar.add(btnLavadoras);
         sidebar.add(btnAlquileres);
         sidebar.add(btnEgresos);
+        sidebar.add(btnListaEgresos);
 
         add(sidebar, BorderLayout.WEST);
 
@@ -80,9 +82,8 @@ public class FrmPrincipal extends JFrame {
         btnClientes.addActionListener(e -> mostrarPanel(new PanelCliente()));
         btnLavadoras.addActionListener(e -> mostrarPanel(new PanelLavadora()));
         btnAlquileres.addActionListener(e -> mostrarPanel(new PanelAlquiler()));
-        
-        // El panel de egresos lo comentamos hasta que lo tengamos creado
-         btnEgresos.addActionListener(e -> mostrarPanel(new PanelEgreso()));
+        btnEgresos.addActionListener(e -> mostrarPanel(new PanelEgreso()));
+        btnListaEgresos.addActionListener(e -> mostrarPanel(new PanelListaEgresos()));
     }
 
     private JButton crearBotonMenu(String texto, String icono) {
